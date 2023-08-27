@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[derive(Debug)]
 pub enum MidiMessage {
     NoteOff { key_number: u8, velocity: u8 },
@@ -31,30 +29,6 @@ fn note_number_to_human(num: u8) -> String {
         },
         num / 12
     )
-}
-
-impl fmt::Display for MidiMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            MidiMessage::NoteOff {
-                key_number,
-                velocity,
-            } => write!(
-                f,
-                "NoteOff {}: {velocity}",
-                note_number_to_human(*key_number)
-            ),
-            MidiMessage::NoteOn {
-                key_number,
-                velocity,
-            } => write!(
-                f,
-                "NoteOn {}: {velocity}",
-                note_number_to_human(*key_number)
-            ),
-            _ => write!(f, "{self:?}"),
-        }
-    }
 }
 
 #[derive(Debug)]
