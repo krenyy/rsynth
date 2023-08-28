@@ -1,4 +1,5 @@
 mod midi;
+mod oscillators;
 
 use std::io;
 
@@ -28,7 +29,6 @@ fn main() {
                 move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
                     let reader = midi_in.iter(ps);
                     for v in reader {
-                        tracing::debug!("midi event");
                         let midi = midi::Midi::try_from(v.bytes).unwrap();
                         tracing::debug!("{midi:?}");
 
@@ -51,19 +51,31 @@ fn main() {
 
                     for v in audio_out.as_mut_slice(ps).iter_mut() {
                         *v = 0.;
+                        // let mut signal = num_complex::Complex::new(0., 0.);
                         for (i, pressed) in keys.iter().enumerate() {
                             if !pressed {
                                 continue;
                             }
-                            let freq = frequency_base * step_base.powi(i as i32);
-                            let x = freq * time * 2. * std::f64::consts::PI;
+                            let frequency = frequency_base * step_base.powi(i as i32);
+                            // let x = frequency * time * 2. * std::f64::consts::PI;
 
-                            let sine = x.sin();
-                            let square = if sine > 0.5 { 1. } else { 0. };
-                            let sawtooth = (sine + square) / 2.;
-
-                            *v += 0.1 * sine as f32;
+                            *v += 0.25
+                                * (0.5
+                                    * <oscillators::Square as oscillators::Oscillator>::value(
+                                        frequency, time,
+                                    ) as f32
+                                    + 1. * <oscillators::Sine as oscillators::Oscillator>::value(
+                                        frequency, time,
+                                    ) as f32);
+                            // let phasor = num_complex::Complex::from_polar(
+                            //     0.1,
+                            //     freq * time * 2.0 * std::f64::consts::PI,
+                            // );
+                            //
+                            // signal += phasor;
                         }
+                        // *v = signal.re as f32;
+                        // *v = if signal.re > 0. { 0.3 } else { -0.3 };
                         time += frame_t;
                     }
 
