@@ -8,7 +8,7 @@ fn main() {
         .init();
 
     let (client, _status) =
-        jack::Client::new("synth-rs", jack::ClientOptions::NO_START_SERVER).unwrap();
+        jack::Client::new("rsynth", jack::ClientOptions::NO_START_SERVER).unwrap();
 
     let sample_rate = client.sample_rate();
     let frame_t = 1. / sample_rate as f64;
