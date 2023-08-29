@@ -1,3 +1,4 @@
+mod hz;
 mod midi;
 mod oscillators;
 
