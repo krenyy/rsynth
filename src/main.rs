@@ -2,6 +2,7 @@ mod hz;
 mod midi;
 mod oscillators;
 
+use hz::Hz;
 use std::io;
 
 fn main() {
@@ -54,7 +55,7 @@ fn main() {
                     if !pressed {
                         continue;
                     }
-                    let frequency = a4_freq * step_base.powi(i as i32 - 57);
+                    let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
                     *v += 0.1
                         * <oscillators::Square as oscillators::Oscillator>::value(frequency, time)
