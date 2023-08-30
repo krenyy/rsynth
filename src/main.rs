@@ -1,8 +1,9 @@
 mod hz;
 mod midi;
-mod oscillators;
+mod osc;
 
-use hz::Hz;
+use crate::hz::Hz;
+use crate::osc::Oscillator;
 use rayon::prelude::*;
 use std::io;
 
@@ -25,6 +26,7 @@ fn main() {
     let step_base = 2f64.powf(1. / 12.);
 
     let mut keys = [false; 256];
+    let oscillator = osc::Sawtooth { num_sinewaves: 8 };
 
     let handler = jack::ClosureProcessHandler::new(
         move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
@@ -60,11 +62,7 @@ fn main() {
                     }
                     let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
-                    *v += 0.01
-                        * <oscillators::SawtoothFast as oscillators::Oscillator>::value(
-                            frequency,
-                            time + iv as f64 * frame_t,
-                        );
+                    *v += 0.01 * oscillator.value(frequency, time + iv as f64 * frame_t);
                 }
             });
 
