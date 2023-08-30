@@ -1,11 +1,12 @@
 use crate::hz::Hertz;
 
-pub trait Oscillator {
+pub trait Oscillator: Send + Sync {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 }
 
 impl<I> Oscillator for I
 where
+    I: ?Sized + Sync + Send,
     for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>,
 {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
@@ -59,5 +60,17 @@ impl Oscillator for SawtoothFast {
         ((2. / ::std::f64::consts::PI)
             * (*frequency * ::std::f64::consts::PI * (time % (1. / *frequency))
                 - (::std::f64::consts::PI / 2.))) as f32
+    }
+}
+
+#[derive(Clone)]
+pub struct VolumeAdjusted<T: Oscillator> {
+    pub volume: f32,
+    pub oscillator: T,
+}
+
+impl<T: Oscillator> Oscillator for VolumeAdjusted<T> {
+    fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
+        self.volume * self.oscillator.value(frequency, time)
     }
 }

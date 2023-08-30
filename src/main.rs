@@ -26,7 +26,23 @@ fn main() {
     let step_base = 2f64.powf(1. / 12.);
 
     let mut keys = [false; 256];
-    let oscillator = osc::Sawtooth { num_sinewaves: 8 };
+    let oscillator: osc::VolumeAdjusted<[Box<dyn Oscillator>; 3]> = osc::VolumeAdjusted {
+        volume: 0.1,
+        oscillator: [
+            Box::new(osc::VolumeAdjusted {
+                volume: 0.1,
+                oscillator: osc::Sawtooth { num_sinewaves: 10 },
+            }),
+            Box::new(osc::VolumeAdjusted {
+                volume: 1.,
+                oscillator: osc::Sine,
+            }),
+            Box::new(osc::VolumeAdjusted {
+                volume: 0.1,
+                oscillator: osc::Square,
+            }),
+        ],
+    };
 
     let handler = jack::ClosureProcessHandler::new(
         move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
@@ -62,7 +78,7 @@ fn main() {
                     }
                     let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
-                    *v += 0.01 * oscillator.value(frequency, time + iv as f64 * frame_t);
+                    *v += oscillator.value(frequency, time + iv as f64 * frame_t);
                 }
             });
 
