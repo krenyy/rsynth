@@ -4,6 +4,15 @@ pub trait Oscillator {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 }
 
+impl<I> Oscillator for I
+where
+    for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>,
+{
+    fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
+        self.into_iter().map(|osc| osc.value(frequency, time)).sum()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Sine;
 #[derive(Clone, Copy)]
