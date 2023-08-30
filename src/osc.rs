@@ -4,12 +4,17 @@ pub trait Oscillator {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 }
 
+#[derive(Clone, Copy)]
 pub struct Sine;
+#[derive(Clone, Copy)]
 pub struct Square;
+#[derive(Clone, Copy)]
 pub struct Triangle;
+#[derive(Clone, Copy)]
 pub struct Sawtooth {
     pub num_sinewaves: usize,
 }
+#[derive(Clone, Copy)]
 pub struct SawtoothFast;
 
 impl Oscillator for Sine {
