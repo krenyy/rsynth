@@ -3,6 +3,7 @@ mod midi;
 mod oscillators;
 
 use hz::Hz;
+use rayon::prelude::*;
 use std::io;
 
 fn main() {
@@ -49,7 +50,9 @@ fn main() {
                 }
             }
 
-            for v in audio_out.as_mut_slice(ps).iter_mut() {
+            let audio_slice = audio_out.as_mut_slice(ps);
+
+            audio_slice.par_iter_mut().enumerate().for_each(|(iv, v)| {
                 *v = 0.;
                 for (i, pressed) in keys.iter().enumerate() {
                     if !pressed {
@@ -59,12 +62,13 @@ fn main() {
 
                     *v += 0.01
                         * <oscillators::SawtoothFast as oscillators::Oscillator>::value(
-                            frequency, time,
+                            frequency,
+                            time + iv as f64 * frame_t,
                         );
                 }
-                time += frame_t;
-            }
+            });
 
+            time += frame_t * audio_slice.len() as f64;
             jack::Control::Continue
         },
     );
