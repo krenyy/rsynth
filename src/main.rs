@@ -57,9 +57,10 @@ fn main() {
                     }
                     let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
-                    *v += 0.1
-                        * <oscillators::Square as oscillators::Oscillator>::value(frequency, time)
-                            as f32;
+                    *v += 0.01
+                        * <oscillators::SawtoothFast as oscillators::Oscillator>::value(
+                            frequency, time,
+                        );
                 }
                 time += frame_t;
             }
