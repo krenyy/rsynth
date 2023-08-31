@@ -26,19 +26,19 @@ fn main() {
     let step_base = 2f64.powf(1. / 12.);
 
     let mut keys = [false; 256];
-    let oscillator: osc::VolumeAdjusted<[Box<dyn Oscillator>; 3]> = osc::VolumeAdjusted {
-        volume: 0.1,
+    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 3]> = osc::Amplitude {
+        amplitude: 0.1,
         oscillator: [
-            Box::new(osc::VolumeAdjusted {
-                volume: 0.1,
+            Box::new(osc::Amplitude {
+                amplitude: 0.1,
                 oscillator: osc::Sawtooth { num_sinewaves: 10 },
             }),
-            Box::new(osc::VolumeAdjusted {
-                volume: 1.,
+            Box::new(osc::Amplitude {
+                amplitude: 1.,
                 oscillator: osc::Sine,
             }),
-            Box::new(osc::VolumeAdjusted {
-                volume: 0.1,
+            Box::new(osc::Amplitude {
+                amplitude: 0.1,
                 oscillator: osc::Square,
             }),
         ],

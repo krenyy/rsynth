@@ -64,13 +64,13 @@ impl Oscillator for SawtoothFast {
 }
 
 #[derive(Clone)]
-pub struct VolumeAdjusted<T: Oscillator> {
-    pub volume: f32,
+pub struct Amplitude<T: Oscillator> {
+    pub amplitude: f32,
     pub oscillator: T,
 }
 
-impl<T: Oscillator> Oscillator for VolumeAdjusted<T> {
+impl<T: Oscillator> Oscillator for Amplitude<T> {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
-        self.volume * self.oscillator.value(frequency, time)
+        self.amplitude * self.oscillator.value(frequency, time)
     }
 }
