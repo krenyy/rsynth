@@ -17,7 +17,7 @@ pub trait Oscillator: Send + Sync {
 
 impl<I> Oscillator for I
 where
-    I: ?Sized + Sync + Send,
+    I: Sync + Send,
     for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>,
 {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
