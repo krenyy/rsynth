@@ -47,10 +47,10 @@ impl Oscillator for Triangle {
 
 impl Oscillator for Sawtooth {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
-        (2. / ::std::f32::consts::PI)
+        -(2. / ::std::f32::consts::PI)
             * (1..(1 + self.num_sinewaves))
                 .into_iter()
-                .map(|i| Sine.value(frequency, i as f64 * time))
+                .map(|i| Sine.value(frequency, i as f64 * time) / i as f32)
                 .sum::<f32>()
     }
 }
