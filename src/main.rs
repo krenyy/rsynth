@@ -35,6 +35,7 @@ fn main() {
             }),
         ],
     };
+    let oscillator = osc::Sawtooth { num_sinewaves: 1 };
     let oscillator = Arc::new(Mutex::new(Box::new(oscillator) as Box<dyn Oscillator>));
     let oscillator_clone1 = Arc::clone(&oscillator);
     let mut keys = [false; 256];

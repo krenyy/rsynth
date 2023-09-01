@@ -9,7 +9,7 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, List, ListItem, ListState},
+    widgets::{Axis, Block, Borders, Chart, Dataset, Gauge, GraphType, List, ListItem, ListState},
 };
 use std::{
     io,
@@ -27,9 +27,43 @@ pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
     let mut list_state = ListState::default();
 
     loop {
+        match event::read().unwrap() {
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('q'),
+                ..
+            }) => break,
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('h'),
+                ..
+            }) => {
+                let mut osc_lock = oscillator.lock().unwrap();
+                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
+                let num_sinewaves = osc_fields
+                    .get_mut("num_sinewaves")
+                    .unwrap()
+                    .downcast_mut::<usize>()
+                    .unwrap();
+                *num_sinewaves = num_sinewaves.saturating_sub(1);
+            }
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('l'),
+                ..
+            }) => {
+                let mut osc_lock = oscillator.lock().unwrap();
+                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
+                let num_sinewaves = osc_fields
+                    .get_mut("num_sinewaves")
+                    .unwrap()
+                    .downcast_mut::<usize>()
+                    .unwrap();
+                *num_sinewaves = num_sinewaves.saturating_add(1);
+            }
+            _ => (),
+        }
+
         terminal
             .draw(|f| {
-                let layout = Layout::default()
+                let layout = Layout::new()
                     .direction(Direction::Vertical)
                     .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                     .split(f.size());
@@ -86,50 +120,22 @@ pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
                 )
                 .block(Block::new().title("Chart").borders(Borders::ALL));
                 f.render_widget(chart, layout[0]);
-                let list = List::new([
-                    ListItem::new("LOL"),
-                    ListItem::new("DEEZ NUTS"),
-                    ListItem::new("LMAO"),
-                ])
-                .block(Block::new().title("HEY").borders(Borders::ALL))
-                .highlight_style(Style::new().black().on_white());
-                f.render_stateful_widget(list, layout[1], &mut list_state);
+
+                let layout2 = Layout::new()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                    .split(layout[1]);
+                let list = List::new(gen_list_items(&oscillator))
+                    .block(Block::new().title("HEY").borders(Borders::ALL))
+                    .highlight_style(Style::new().black().on_white());
+                f.render_stateful_widget(list, layout2[0], &mut list_state);
+                let gauge = Gauge::default()
+                    .block(Block::default().borders(Borders::ALL).title("Progress"))
+                    .gauge_style(Style::default().white())
+                    .percent(20);
+                f.render_widget(gauge, layout2[1]);
             })
             .unwrap();
-
-        match event::read().unwrap() {
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('q'),
-                ..
-            }) => break,
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('h'),
-                ..
-            }) => {
-                let mut osc_lock = oscillator.lock().unwrap();
-                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
-                let amplitude = osc_fields
-                    .get_mut("amplitude")
-                    .unwrap()
-                    .downcast_mut::<f32>()
-                    .unwrap();
-                *amplitude -= 0.1
-            }
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('l'),
-                ..
-            }) => {
-                let mut osc_lock = oscillator.lock().unwrap();
-                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
-                let amplitude = osc_fields
-                    .get_mut("amplitude")
-                    .unwrap()
-                    .downcast_mut::<f32>()
-                    .unwrap();
-                *amplitude += 0.1
-            }
-            _ => (),
-        }
     }
 
     disable_raw_mode().unwrap();
@@ -140,4 +146,13 @@ pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
     )
     .unwrap();
     terminal.show_cursor().unwrap();
+}
+
+fn gen_list_items(o: &Arc<Mutex<Box<dyn Oscillator>>>) -> Vec<ListItem> {
+    let mut items = vec![];
+
+    let base = o.lock().unwrap();
+    items.push(ListItem::new(base.name()));
+
+    items
 }
