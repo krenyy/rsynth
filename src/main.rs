@@ -6,6 +6,7 @@ mod ui;
 use crate::hz::Hz;
 use crate::osc::Oscillator;
 use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 fn main() {
     let (client, _status) =
@@ -21,8 +22,7 @@ fn main() {
     let a4_freq = 440.;
     let step_base = 2f64.powf(1. / 12.);
 
-    let mut keys = [false; 256];
-    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 3]> = osc::Amplitude {
+    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 2]> = osc::Amplitude {
         amplitude: 1.0,
         oscillator: [
             Box::new(osc::Amplitude {
@@ -33,30 +33,11 @@ fn main() {
                 amplitude: 0.7,
                 oscillator: osc::Sine,
             }),
-            Box::new(osc::Amplitude {
-                amplitude: 0.1,
-                oscillator: osc::Square,
-            }),
         ],
     };
-    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 3]> = osc::Amplitude {
-        amplitude: 0.1,
-        oscillator: [
-            Box::new(osc::Amplitude {
-                amplitude: 0.1,
-                oscillator: osc::Sawtooth { num_sinewaves: 10 },
-            }),
-            Box::new(osc::Amplitude {
-                amplitude: 1.,
-                oscillator: osc::Sine,
-            }),
-            Box::new(osc::Amplitude {
-                amplitude: 0.1,
-                oscillator: osc::Square,
-            }),
-        ],
-    };
-    let oscillator = osc::Square;
+    let oscillator = Arc::new(Mutex::new(Box::new(oscillator) as Box<dyn Oscillator>));
+    let oscillator_clone1 = Arc::clone(&oscillator);
+    let mut keys = [false; 256];
 
     let handler = jack::ClosureProcessHandler::new(
         move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
@@ -91,7 +72,10 @@ fn main() {
                     }
                     let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
-                    *v += oscillator.value(frequency, time + iv as f64 * frame_t);
+                    *v += oscillator_clone1
+                        .lock()
+                        .unwrap()
+                        .value(frequency, time + iv as f64 * frame_t);
                 }
             });
 
@@ -102,7 +86,7 @@ fn main() {
 
     let active_client = client.activate_async((), handler).unwrap();
 
-    ui::run();
+    ui::run(oscillator);
 
     active_client.deactivate().unwrap();
 }

@@ -1,7 +1,14 @@
 use crate::hz::Hertz;
+use std::{any::Any, collections::HashMap};
 
 pub trait Oscillator: Send + Sync {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
+    fn get_fields(&self) -> Option<HashMap<&str, &dyn Any>> {
+        None
+    }
+    fn get_fields_mut(&mut self) -> Option<HashMap<&str, &mut dyn Any>> {
+        None
+    }
 }
 
 impl<I> Oscillator for I
@@ -53,6 +60,18 @@ impl Oscillator for Sawtooth {
                 .map(|i| Sine.value(frequency, i as f64 * time) / i as f32)
                 .sum::<f32>()
     }
+
+    fn get_fields(&self) -> Option<HashMap<&str, &dyn Any>> {
+        let mut map = HashMap::<&str, &dyn Any>::new();
+        map.insert("num_sinewaves", &self.num_sinewaves);
+        Some(map)
+    }
+
+    fn get_fields_mut(&mut self) -> Option<HashMap<&str, &mut dyn Any>> {
+        let mut map = HashMap::<&str, &mut dyn Any>::new();
+        map.insert("num_sinewaves", &mut self.num_sinewaves);
+        Some(map)
+    }
 }
 
 impl Oscillator for SawtoothFast {
@@ -69,8 +88,31 @@ pub struct Amplitude<T: Oscillator> {
     pub oscillator: T,
 }
 
-impl<T: Oscillator> Oscillator for Amplitude<T> {
+impl<T: Oscillator + 'static> Oscillator for Amplitude<T> {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         self.amplitude * self.oscillator.value(frequency, time)
+    }
+
+    fn get_fields(&self) -> Option<HashMap<&str, &dyn Any>> {
+        let mut map = HashMap::<&str, &dyn Any>::new();
+        map.insert("amplitude", &self.amplitude);
+        map.insert("oscillator", &self.oscillator);
+        Some(map)
+    }
+
+    fn get_fields_mut(&mut self) -> Option<HashMap<&str, &mut dyn Any>> {
+        let mut map = HashMap::<&str, &mut dyn Any>::new();
+        map.insert("amplitude", &mut self.amplitude);
+        map.insert("oscillator", &mut self.oscillator);
+        Some(map)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Zero;
+
+impl Oscillator for Zero {
+    fn value(&self, _frequency: Hertz<f64>, _time: f64) -> f32 {
+        0.
     }
 }
