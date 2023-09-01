@@ -1,17 +1,13 @@
 mod hz;
 mod midi;
 mod osc;
+mod ui;
 
 use crate::hz::Hz;
 use crate::osc::Oscillator;
 use rayon::prelude::*;
-use std::io;
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .init();
-
     let (client, _status) =
         jack::Client::new("rsynth", jack::ClientOptions::NO_START_SERVER).unwrap();
 
@@ -26,6 +22,23 @@ fn main() {
     let step_base = 2f64.powf(1. / 12.);
 
     let mut keys = [false; 256];
+    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 3]> = osc::Amplitude {
+        amplitude: 1.0,
+        oscillator: [
+            Box::new(osc::Amplitude {
+                amplitude: 0.8,
+                oscillator: osc::SawtoothFast,
+            }),
+            Box::new(osc::Amplitude {
+                amplitude: 0.7,
+                oscillator: osc::Sine,
+            }),
+            Box::new(osc::Amplitude {
+                amplitude: 0.1,
+                oscillator: osc::Square,
+            }),
+        ],
+    };
     let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 3]> = osc::Amplitude {
         amplitude: 0.1,
         oscillator: [
@@ -43,13 +56,13 @@ fn main() {
             }),
         ],
     };
+    let oscillator = osc::Square;
 
     let handler = jack::ClosureProcessHandler::new(
         move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
             let reader = midi_in.iter(ps);
             for v in reader {
                 let midi = midi::Midi::try_from(v.bytes).unwrap();
-                tracing::debug!("{midi:?}");
 
                 match midi.message {
                     midi::MidiMessage::NoteOff {
@@ -64,7 +77,7 @@ fn main() {
                     } => {
                         keys[key_number as usize] = true;
                     }
-                    msg => tracing::warn!("unimplemented midi message: {msg:?}"),
+                    msg => unimplemented!("{msg:?}"),
                 }
             }
 
@@ -89,9 +102,7 @@ fn main() {
 
     let active_client = client.activate_async((), handler).unwrap();
 
-    tracing::info!("press any key to quit...");
-    let mut user_input = String::new();
-    io::stdin().read_line(&mut user_input).unwrap();
+    ui::run();
 
     active_client.deactivate().unwrap();
 }
