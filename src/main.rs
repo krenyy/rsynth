@@ -22,20 +22,19 @@ fn main() {
     let a4_freq = 440.;
     let step_base = 2f64.powf(1. / 12.);
 
-    let oscillator: osc::Amplitude<[Box<dyn Oscillator>; 2]> = osc::Amplitude {
+    let oscillator = osc::Amplitude {
         amplitude: 1.0,
-        oscillator: [
+        oscillator: osc::Collection([
             Box::new(osc::Amplitude {
                 amplitude: 0.8,
                 oscillator: osc::SawtoothFast,
-            }),
+            }) as Box<dyn Oscillator>,
             Box::new(osc::Amplitude {
                 amplitude: 0.7,
                 oscillator: osc::Sine,
             }),
-        ],
+        ]),
     };
-    let oscillator = osc::Sawtooth { num_sinewaves: 1 };
     let oscillator = Arc::new(Mutex::new(Box::new(oscillator) as Box<dyn Oscillator>));
     let oscillator_clone1 = Arc::clone(&oscillator);
     let mut keys = [false; 256];

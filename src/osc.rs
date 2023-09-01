@@ -15,17 +15,32 @@ pub trait Oscillator: Send + Sync {
     }
 }
 
-impl<I> Oscillator for I
+#[derive(Clone)]
+pub struct Collection<I>(pub I)
 where
-    I: Sync + Send,
+    I: Send + Sync,
+    for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>;
+
+impl<I> Oscillator for Collection<I>
+where
+    I: Sync + Send + 'static,
     for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>,
 {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
-        self.into_iter().map(|osc| osc.value(frequency, time)).sum()
+        self.0
+            .into_iter()
+            .map(|osc| osc.value(frequency, time))
+            .sum()
     }
 
     fn name(&self) -> &'static str {
-        "Iterable"
+        "Collection"
+    }
+
+    fn get_fields(&self) -> Option<HashMap<&'static str, &dyn Any>> {
+        let mut map = HashMap::<&'static str, &dyn Any>::new();
+        map.insert("items", &self.0);
+        Some(map)
     }
 }
 
