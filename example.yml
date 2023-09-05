@@ -13,7 +13,7 @@ oscillator:
         amplitude: 1.0
         oscillator:
           type: Sawtooth
-          num_sinewaves: 4
+          num_sinewaves: 16
       - type: Amplitude
         amplitude: 1.0
         oscillator:

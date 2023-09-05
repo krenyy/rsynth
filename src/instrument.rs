@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,17 +10,17 @@ pub struct Instrument {
     pub oscillator: Box<dyn Oscillator>,
 }
 
+#[derive(Debug)]
+pub enum InstrumentReadError {
+    IoError(io::Error),
+    Deserialize(serde_yaml::Error),
+}
+
 impl Instrument {
-    pub fn read(path: &str) -> Self {
-        serde_yaml::from_str(&fs::read_to_string(path).expect("io error during read_to_string!"))
-            .unwrap_or(Instrument {
-                envelope: Envelope::ADSR {
-                    attack_time: 0.,
-                    decay_time: 0.,
-                    sustain_amplitude: 0.,
-                    release_time: 0.,
-                },
-                oscillator: Box::new(vec![]),
-            })
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, InstrumentReadError> {
+        match fs::read_to_string(path) {
+            Ok(s) => serde_yaml::from_str(&s).map_err(|e| InstrumentReadError::Deserialize(e)),
+            Err(e) => return Err(InstrumentReadError::IoError(e)),
+        }
     }
 }
