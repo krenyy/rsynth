@@ -1,62 +1,50 @@
-use crate::hz::Hertz;
-use std::{any::Any, collections::HashMap};
+use std::fmt;
 
-pub trait Oscillator: Send + Sync {
+use serde::{Deserialize, Serialize};
+
+use crate::hz::Hertz;
+
+#[typetag::serde(tag = "type")]
+pub trait Oscillator: fmt::Debug + Send + Sync {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 
     fn name(&self) -> &'static str;
 
-    fn get_fields(&self) -> Option<HashMap<&'static str, &dyn Any>> {
-        None
-    }
-
-    fn get_fields_mut(&mut self) -> Option<HashMap<&'static str, &mut dyn Any>> {
-        None
+    fn tree(&self, v: &mut Vec<(&'static str, usize, Option<Box<dyn ToString>>)>, level: usize) {
+        v.push((self.name(), level, None));
     }
 }
 
-#[derive(Clone)]
-pub struct Collection<I>(pub I)
-where
-    I: Send + Sync,
-    for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>;
-
-impl<I> Oscillator for Collection<I>
-where
-    I: Sync + Send + 'static,
-    for<'a> &'a I: IntoIterator<Item = &'a Box<dyn Oscillator>>,
-{
+#[typetag::serde]
+impl Oscillator for Vec<Box<dyn Oscillator>> {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
-        self.0
-            .into_iter()
-            .map(|osc| osc.value(frequency, time))
-            .sum()
+        self.into_iter().map(|osc| osc.value(frequency, time)).sum()
     }
 
     fn name(&self) -> &'static str {
         "Collection"
     }
 
-    fn get_fields(&self) -> Option<HashMap<&'static str, &dyn Any>> {
-        let mut map = HashMap::<&'static str, &dyn Any>::new();
-        map.insert("items", &self.0);
-        Some(map)
+    fn tree(&self, v: &mut Vec<(&'static str, usize, Option<Box<dyn ToString>>)>, level: usize) {
+        v.push((self.name(), level, None));
+        self.into_iter().for_each(|x| x.tree(v, level + 1));
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Sine;
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Square;
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Triangle;
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Sawtooth {
     pub num_sinewaves: usize,
 }
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SawtoothFast;
 
+#[typetag::serde]
 impl Oscillator for Sine {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         (frequency.angular_velocity() * time).sin() as f32
@@ -67,6 +55,7 @@ impl Oscillator for Sine {
     }
 }
 
+#[typetag::serde]
 impl Oscillator for Square {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         Sine.value(frequency, time).signum()
@@ -77,6 +66,7 @@ impl Oscillator for Square {
     }
 }
 
+#[typetag::serde]
 impl Oscillator for Triangle {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         Sine.value(frequency, time).asin()
@@ -87,6 +77,7 @@ impl Oscillator for Triangle {
     }
 }
 
+#[typetag::serde]
 impl Oscillator for Sawtooth {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         -(2. / ::std::f32::consts::PI)
@@ -100,19 +91,17 @@ impl Oscillator for Sawtooth {
         "Sawtooth"
     }
 
-    fn get_fields(&self) -> Option<HashMap<&'static str, &dyn Any>> {
-        let mut map = HashMap::<&str, &dyn Any>::new();
-        map.insert("num_sinewaves", &self.num_sinewaves);
-        Some(map)
-    }
-
-    fn get_fields_mut(&mut self) -> Option<HashMap<&'static str, &mut dyn Any>> {
-        let mut map = HashMap::<&str, &mut dyn Any>::new();
-        map.insert("num_sinewaves", &mut self.num_sinewaves);
-        Some(map)
+    fn tree(&self, v: &mut Vec<(&'static str, usize, Option<Box<dyn ToString>>)>, level: usize) {
+        v.push((self.name(), level, None));
+        v.push((
+            "num_sinewaves",
+            level + 1,
+            Some(Box::new(self.num_sinewaves)),
+        ))
     }
 }
 
+#[typetag::serde]
 impl Oscillator for SawtoothFast {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         ((2. / ::std::f64::consts::PI)
@@ -125,13 +114,14 @@ impl Oscillator for SawtoothFast {
     }
 }
 
-#[derive(Clone)]
-pub struct Amplitude<T: Oscillator> {
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Amplitude {
     pub amplitude: f32,
-    pub oscillator: T,
+    pub oscillator: Box<dyn Oscillator>,
 }
 
-impl<T: Oscillator + 'static> Oscillator for Amplitude<T> {
+#[typetag::serde]
+impl Oscillator for Amplitude {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
         self.amplitude * self.oscillator.value(frequency, time)
     }
@@ -140,24 +130,17 @@ impl<T: Oscillator + 'static> Oscillator for Amplitude<T> {
         "Amplitude"
     }
 
-    fn get_fields(&self) -> Option<HashMap<&'static str, &dyn Any>> {
-        let mut map = HashMap::<&str, &dyn Any>::new();
-        map.insert("amplitude", &self.amplitude);
-        map.insert("oscillator", &self.oscillator);
-        Some(map)
-    }
-
-    fn get_fields_mut(&mut self) -> Option<HashMap<&'static str, &mut dyn Any>> {
-        let mut map = HashMap::<&str, &mut dyn Any>::new();
-        map.insert("amplitude", &mut self.amplitude);
-        map.insert("oscillator", &mut self.oscillator);
-        Some(map)
+    fn tree(&self, v: &mut Vec<(&'static str, usize, Option<Box<dyn ToString>>)>, level: usize) {
+        v.push((self.name(), level, None));
+        v.push(("amplitude", level + 1, Some(Box::new(self.amplitude))));
+        self.oscillator.tree(v, level + 1);
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Zero;
 
+#[typetag::serde]
 impl Oscillator for Zero {
     fn value(&self, _frequency: Hertz<f64>, _time: f64) -> f32 {
         0.

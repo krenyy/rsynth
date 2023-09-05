@@ -1,6 +1,7 @@
 use crate::{
     hz::Hz,
     osc::{self, Oscillator},
+    Data,
 };
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
@@ -9,63 +10,47 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Axis, Block, Borders, Chart, Dataset, Gauge, GraphType, List, ListItem, ListState},
+    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
 };
 use std::{
     io,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
-pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
-    enable_raw_mode().unwrap();
+pub fn run(data: Arc<Mutex<Data>>) {
+    enable_raw_mode().expect("failed to enable raw mode!");
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
+        .expect("failed to execute commands!");
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).unwrap();
+    let mut terminal = Terminal::new(backend).expect("failed to create a terminal!");
 
     let period = 1. / ::std::f64::consts::PI;
-    let mut list_state = ListState::default();
+
+    let mut first_draw = true;
 
     loop {
-        match event::read().unwrap() {
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('q'),
-                ..
-            }) => break,
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('h'),
-                ..
-            }) => {
-                let mut osc_lock = oscillator.lock().unwrap();
-                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
-                let num_sinewaves = osc_fields
-                    .get_mut("num_sinewaves")
-                    .unwrap()
-                    .downcast_mut::<usize>()
-                    .unwrap();
-                *num_sinewaves = num_sinewaves.saturating_sub(1);
+        if event::poll(Duration::from_millis(500)).expect("io error during event poll!") {
+            match event::read().expect("failed to read an event!") {
+                Event::Resize(..) => (),
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('q'),
+                    ..
+                }) => break,
+                _ => (),
             }
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('l'),
-                ..
-            }) => {
-                let mut osc_lock = oscillator.lock().unwrap();
-                let mut osc_fields = osc_lock.get_fields_mut().unwrap();
-                let num_sinewaves = osc_fields
-                    .get_mut("num_sinewaves")
-                    .unwrap()
-                    .downcast_mut::<usize>()
-                    .unwrap();
-                *num_sinewaves = num_sinewaves.saturating_add(1);
-            }
-            _ => (),
+        }
+
+        if !first_draw && !data.lock().expect("failed to acquire lock!").should_redraw {
+            continue;
         }
 
         terminal
             .draw(|f| {
                 let layout = Layout::new()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                    .constraints([Constraint::Percentage(100)])
                     .split(f.size());
                 let ratio = 1. / layout[0].width as f64;
                 let values = (0..layout[0].width)
@@ -73,9 +58,10 @@ pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
                         let x = x as f64 * ratio * period;
                         (
                             x,
-                            oscillator
-                                .lock()
-                                .unwrap()
+                            data.lock()
+                                .expect("failed to acquire lock!")
+                                .instrument
+                                .oscillator
                                 .value((2. * ::std::f64::consts::PI).hz(), x)
                                 as f64,
                         )
@@ -118,41 +104,23 @@ pub fn run(oscillator: Arc<Mutex<Box<dyn Oscillator>>>) {
                             .collect(),
                     ),
                 )
-                .block(Block::new().title("Chart").borders(Borders::ALL));
+                .block(Block::new().title("rsynth").borders(Borders::ALL));
                 f.render_widget(chart, layout[0]);
-
-                let layout2 = Layout::new()
-                    .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-                    .split(layout[1]);
-                let list = List::new(gen_list_items(&oscillator))
-                    .block(Block::new().title("HEY").borders(Borders::ALL))
-                    .highlight_style(Style::new().black().on_white());
-                f.render_stateful_widget(list, layout2[0], &mut list_state);
-                let gauge = Gauge::default()
-                    .block(Block::default().borders(Borders::ALL).title("Progress"))
-                    .gauge_style(Style::default().white())
-                    .percent(20);
-                f.render_widget(gauge, layout2[1]);
             })
-            .unwrap();
+            .expect("io error during terminal draw!");
+
+        first_draw = false;
+        data.lock().expect("failed to acquire lock!").should_redraw = false;
     }
 
-    disable_raw_mode().unwrap();
+    disable_raw_mode().expect("failed to disable raw mode!");
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture
     )
-    .unwrap();
-    terminal.show_cursor().unwrap();
-}
-
-fn gen_list_items(o: &Arc<Mutex<Box<dyn Oscillator>>>) -> Vec<ListItem> {
-    let mut items = vec![];
-
-    let base = o.lock().unwrap();
-    items.push(ListItem::new(base.name()));
-
-    items
+    .expect("failed to execute commands!");
+    terminal
+        .show_cursor()
+        .expect("io error during show_cursor!");
 }
