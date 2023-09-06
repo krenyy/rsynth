@@ -1,5 +1,16 @@
 #[derive(Debug)]
-pub enum MidiMessage {
+pub enum Message {
+    ChannelMessage {
+        channel: u8,
+        kind: ChannelMessageKind,
+    },
+    SystemMessage {
+        kind: SystemMessageKind,
+    },
+}
+
+#[derive(Debug)]
+pub enum ChannelMessageKind {
     NoteOff { key_number: u8, velocity: u8 },
     NoteOn { key_number: u8, velocity: u8 },
     PolyphonicKeyPressure,
@@ -7,6 +18,11 @@ pub enum MidiMessage {
     ProgramChange,
     ChannelPressure,
     PitchBend,
+}
+
+#[derive(Debug)]
+pub enum SystemMessageKind {
+    ActiveSensing,
 }
 
 fn note_number_to_human(num: u8) -> String {
@@ -33,7 +49,7 @@ fn note_number_to_human(num: u8) -> String {
 
 #[derive(Debug)]
 pub struct Midi {
-    pub message: MidiMessage,
+    pub message: Message,
     pub channel: u8,
 }
 
@@ -42,6 +58,7 @@ pub enum ParseError {
     NoData,
     ByteSequenceTooLong,
     InvalidStatusByte,
+    UnimplementedStatusByte(u8),
 }
 
 impl TryFrom<&[u8]> for Midi {
@@ -61,20 +78,32 @@ impl TryFrom<&[u8]> for Midi {
         }
 
         let message = match status >> 4 {
-            0x8 => MidiMessage::NoteOff {
-                key_number: value[1],
-                velocity: value[2],
+            (0x8..=0xE) => Message::ChannelMessage {
+                channel: status & 0xF,
+                kind: match status >> 4 {
+                    0x8 => ChannelMessageKind::NoteOff {
+                        key_number: value[1],
+                        velocity: value[2],
+                    },
+                    0x9 => ChannelMessageKind::NoteOn {
+                        key_number: value[1],
+                        velocity: value[2],
+                    },
+                    0xA => ChannelMessageKind::PolyphonicKeyPressure,
+                    0xB => ChannelMessageKind::ControlChange,
+                    0xC => ChannelMessageKind::ProgramChange,
+                    0xD => ChannelMessageKind::ChannelPressure,
+                    0xE => ChannelMessageKind::PitchBend,
+                    _ => return Err(ParseError::UnimplementedStatusByte(status)),
+                },
             },
-            0x9 => MidiMessage::NoteOn {
-                key_number: value[1],
-                velocity: value[2],
+            0xF => Message::SystemMessage {
+                kind: match status & 0xF {
+                    0xE => SystemMessageKind::ActiveSensing,
+                    _ => return Err(ParseError::UnimplementedStatusByte(status)),
+                },
             },
-            0xA => MidiMessage::PolyphonicKeyPressure,
-            0xB => MidiMessage::ControlChange,
-            0xC => MidiMessage::ProgramChange,
-            0xD => MidiMessage::ChannelPressure,
-            0xE => MidiMessage::PitchBend,
-            _ => unreachable!(),
+            _ => return Err(ParseError::UnimplementedStatusByte(status)),
         };
         let channel = status & 0b1111;
 

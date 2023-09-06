@@ -1,6 +1,6 @@
 use crate::{
     hz::Hz,
-    midi::{Midi, MidiMessage},
+    midi::{ChannelMessageKind, Message, Midi, SystemMessageKind},
     Data,
 };
 use jack::{AudioOut, Client, ClientOptions, ClosureProcessHandler, Control, MidiIn, ProcessScope};
@@ -35,13 +35,18 @@ pub fn init(
             let midi = Midi::try_from(v.bytes).expect("failed to parse midi event!");
 
             match midi.message {
-                MidiMessage::NoteOff { key_number, .. } => {
-                    keys[key_number as usize] = false;
-                }
-                MidiMessage::NoteOn { key_number, .. } => {
-                    keys[key_number as usize] = true;
-                }
-                msg => unimplemented!("{msg:?}"),
+                Message::ChannelMessage { kind, .. } => match kind {
+                    ChannelMessageKind::NoteOff { key_number, .. } => {
+                        keys[key_number as usize] = false
+                    }
+                    ChannelMessageKind::NoteOn { key_number, .. } => {
+                        keys[key_number as usize] = true
+                    }
+                    kind => tracing::warn!("unimplemented ChannelMessageKind: {kind:?}"),
+                },
+                Message::SystemMessage { kind } => match kind {
+                    SystemMessageKind::ActiveSensing => (),
+                },
             }
         }
 

@@ -7,9 +7,10 @@ mod osc;
 mod ui;
 mod watcher;
 
-use notify::Watcher;
-
 use crate::instrument::Instrument;
+use clap::Parser;
+use instrument::InstrumentReadError;
+use notify::Watcher;
 use std::{
     path::Path,
     sync::{Arc, Mutex},
@@ -20,13 +21,26 @@ pub struct Data {
     pub instrument: Instrument,
 }
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    instrument_path: String,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let data = Arc::new(Mutex::new(Data {
         should_redraw: true,
-        instrument: Instrument::read("./example.yml").expect("instrument path does not exist!"),
+        instrument: Instrument::read(&args.instrument_path).unwrap_or_else(|err| match err {
+            InstrumentReadError::IoError(err) => panic!("failed to read instrument!\n{err:?}"),
+            InstrumentReadError::Deserialize(err) => {
+                panic!("failed to deserialize instrument!\n{err:?}")
+            }
+        }),
     }));
 
-    let mut watcher = watcher::init(Arc::clone(&data));
+    let mut watcher = watcher::init(Arc::clone(&data), args.instrument_path);
     let active_client = jack::init(Arc::clone(&data));
 
     ui::run(Arc::clone(&data));

@@ -7,14 +7,15 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub fn init(data: Arc<Mutex<Data>>) -> RecommendedWatcher {
+pub fn init(data: Arc<Mutex<Data>>, instrument_path: String) -> RecommendedWatcher {
+    let asdf = instrument_path.clone();
     let mut watcher = recommended_watcher(move |x: Result<Event, Error>| {
         match x {
             Ok(ev) => match ev.kind {
                 EventKind::Modify(_) => {
                     let _ = std::mem::replace(
                         &mut data.lock().expect("failed to acquire lock!").instrument,
-                        Instrument::read("./example.yml").unwrap_or(Instrument {
+                        Instrument::read(&instrument_path).unwrap_or(Instrument {
                             envelope: Envelope::ADSR {
                                 attack_time: 0.,
                                 decay_time: 0.,
@@ -34,7 +35,7 @@ pub fn init(data: Arc<Mutex<Data>>) -> RecommendedWatcher {
     .expect("failed to create watcher!");
 
     watcher
-        .watch(Path::new("./example.yml"), RecursiveMode::NonRecursive)
+        .watch(Path::new(&asdf), RecursiveMode::NonRecursive)
         .expect("watcher failed! (?)");
 
     watcher
