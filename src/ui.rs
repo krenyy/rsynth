@@ -1,8 +1,4 @@
-use crate::{
-    hz::Hz,
-    osc::{self, Oscillator},
-    Data,
-};
+use crate::{hz::Hz, Data};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
     execute,
@@ -72,13 +68,7 @@ pub fn run(data: Arc<Mutex<Data>>) {
                     })
                     .collect::<Vec<_>>();
                 let values_zero = (0..layout[0].width)
-                    .map(|x| {
-                        let x = x as f64 * ratio * period;
-                        (
-                            x,
-                            osc::Zero.value((2. * ::std::f64::consts::PI).hz(), x) as f64,
-                        )
-                    })
+                    .map(|x| (x as f64 * ratio * period, 0.))
                     .collect::<Vec<_>>();
                 let chart = Chart::new(vec![
                     Dataset::default()
