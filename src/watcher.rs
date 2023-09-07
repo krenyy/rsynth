@@ -16,6 +16,7 @@ pub fn init(data: Arc<Mutex<Data>>, instrument_path: String) -> RecommendedWatch
                     let _ = std::mem::replace(
                         &mut data.lock().expect("failed to acquire lock!").instrument,
                         Instrument::read(&instrument_path).unwrap_or(Instrument {
+                            volume: 1.,
                             envelope: Envelope::ADSR {
                                 attack_time: 0.,
                                 decay_time: 0.,

@@ -62,9 +62,7 @@ pub fn init(
                 }
                 let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
 
-                *v += instrument
-                    .oscillator
-                    .value(frequency, time + iv as f64 * frame_t);
+                *v += instrument.value(frequency, time + iv as f64 * frame_t);
             }
         });
 
