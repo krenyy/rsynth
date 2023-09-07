@@ -33,7 +33,9 @@ pub fn run(data: Arc<Mutex<Data>>) {
     loop {
         if event::poll(Duration::from_millis(500)).expect("io error during event poll!") {
             match event::read().expect("failed to read an event!") {
-                Event::Resize(..) => (),
+                Event::Resize(..) => {
+                    data.lock().expect("failed to acquire lock!").should_redraw = true
+                }
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('q'),
                     ..
