@@ -31,7 +31,9 @@ pub fn run(data: Arc<Mutex<Data>>) {
     let mut first_draw = true;
 
     loop {
-        if event::poll(Duration::from_millis(500)).expect("io error during event poll!") {
+        if !first_draw
+            && event::poll(Duration::from_millis(500)).expect("io error during event poll!")
+        {
             match event::read().expect("failed to read an event!") {
                 Event::Resize(..) => {
                     data.lock().expect("failed to acquire lock!").should_redraw = true
