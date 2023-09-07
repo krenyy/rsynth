@@ -22,7 +22,9 @@ pub fn run(data: Arc<Mutex<Data>>) {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).expect("failed to create a terminal!");
 
-    let period = 1. / ::std::f64::consts::PI;
+    let one_period = 1. / (2. * ::std::f64::consts::PI);
+    let num_periods = 2.;
+    let period = num_periods * one_period;
 
     let mut first_draw = true;
 
@@ -62,7 +64,7 @@ pub fn run(data: Arc<Mutex<Data>>) {
                                 .expect("failed to acquire lock!")
                                 .instrument
                                 .oscillator
-                                .value(::std::f64::consts::PI.hz(), x)
+                                .value((2. * ::std::f64::consts::PI).hz(), x)
                                 as f64,
                         )
                     })
@@ -86,7 +88,7 @@ pub fn run(data: Arc<Mutex<Data>>) {
                     Axis::default()
                         .title("Time")
                         .bounds([0., period])
-                        .labels(["0", "π", "2π"].into_iter().map(Span::from).collect()),
+                        .labels(["0", "2π", "4π"].into_iter().map(Span::from).collect()),
                 )
                 .y_axis(
                     Axis::default()
