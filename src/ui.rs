@@ -72,13 +72,11 @@ pub fn run(data: Arc<Mutex<Data>>) {
                     .collect::<Vec<_>>();
                 let chart = Chart::new(vec![
                     Dataset::default()
-                        .name("Zero")
                         .marker(Marker::Braille)
                         .graph_type(GraphType::Line)
                         .data(&values_zero)
                         .dark_gray(),
                     Dataset::default()
-                        .name("Wave")
                         .marker(Marker::Braille)
                         .graph_type(GraphType::Line)
                         .data(&values)
