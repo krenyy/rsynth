@@ -101,12 +101,10 @@ pub fn run(data: Arc<Mutex<Data>>) {
                         .labels(["0", "π", "2π"].into_iter().map(Span::from).collect()),
                 )
                 .y_axis(
-                    Axis::default().title("Amplitude").bounds([-2., 2.]).labels(
-                        ["-2", "-1", "0", "1", "2"]
-                            .into_iter()
-                            .map(Span::from)
-                            .collect(),
-                    ),
+                    Axis::default()
+                        .title("Amplitude")
+                        .bounds([-1., 1.])
+                        .labels(["-1", "0", "1"].into_iter().map(Span::from).collect()),
                 )
                 .block(Block::new().title("rsynth").borders(Borders::ALL));
                 f.render_widget(chart, layout[0]);
