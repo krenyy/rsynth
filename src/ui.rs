@@ -6,7 +6,7 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
+    widgets::{Axis, Chart, Dataset, GraphType},
 };
 use std::{
     io,
@@ -93,8 +93,7 @@ pub fn run(data: Arc<Mutex<Data>>) {
                         .title("Amplitude")
                         .bounds([-1., 1.])
                         .labels(["-1", "0", "1"].into_iter().map(Span::from).collect()),
-                )
-                .block(Block::new().title("rsynth").borders(Borders::ALL));
+                );
                 f.render_widget(chart, layout[0]);
             })
             .expect("io error during terminal draw!");
