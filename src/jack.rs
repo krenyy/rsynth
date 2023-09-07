@@ -67,6 +67,12 @@ pub fn init(
         });
 
         time += frame_t * audio_slice.len() as f64;
+
+        if time >= f64::MAX {
+            time = 0.;
+            keys.iter_mut().for_each(|x| *x = false);
+        }
+
         Control::Continue
     });
 
