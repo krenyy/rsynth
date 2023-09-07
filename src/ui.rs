@@ -66,7 +66,7 @@ pub fn run(data: Arc<Mutex<Data>>) {
                                 .expect("failed to acquire lock!")
                                 .instrument
                                 .oscillator
-                                .value((2. * ::std::f64::consts::PI).hz(), x)
+                                .value(::std::f64::consts::PI.hz(), x)
                                 as f64,
                         )
                     })
