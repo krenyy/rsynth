@@ -40,7 +40,7 @@ fn main() {
         }),
     }));
 
-    let mut watcher = watcher::init(Arc::clone(&data), args.instrument_path);
+    let mut watcher = watcher::init(Arc::clone(&data), args.instrument_path.clone());
     let active_client = jack::init(Arc::clone(&data));
 
     ui::run(Arc::clone(&data));
@@ -50,6 +50,6 @@ fn main() {
         .expect("failed to deactivate jack client!");
 
     watcher
-        .unwatch(&Path::new("./example.yml"))
+        .unwatch(&Path::new(&args.instrument_path))
         .expect("failed to unwatch file!");
 }
