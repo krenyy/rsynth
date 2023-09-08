@@ -1,5 +1,5 @@
 use crate::{
-    hz::Hz,
+    instrument::{Key, KeyState},
     midi::{ChannelMessageKind, Message, Midi, SystemMessageKind},
     Data,
 };
@@ -24,10 +24,10 @@ pub fn init(
         .register_port("audio_out", AudioOut)
         .expect("failed to register audio_out port!");
 
-    let a4_freq = 440.;
-    let step_base = 2f64.powf(1. / 12.);
-
-    let mut keys = [false; 256];
+    let mut keys = [Key {
+        active: false,
+        state: KeyState::Released { time_released: 0. },
+    }; 256];
 
     let handler = ClosureProcessHandler::new(move |_: &Client, ps: &ProcessScope| -> Control {
         let reader = midi_in.iter(ps);
@@ -37,10 +37,13 @@ pub fn init(
             match midi.message {
                 Message::ChannelMessage { kind, .. } => match kind {
                     ChannelMessageKind::NoteOff { key_number, .. } => {
-                        keys[key_number as usize] = false
+                        keys[key_number as usize].state = KeyState::Released {
+                            time_released: time,
+                        }
                     }
                     ChannelMessageKind::NoteOn { key_number, .. } => {
-                        keys[key_number as usize] = true
+                        keys[key_number as usize].state = KeyState::Pressed { time_pressed: time };
+                        keys[key_number as usize].active = true;
                     }
                     kind => tracing::warn!("unimplemented ChannelMessageKind: {kind:?}"),
                 },
@@ -54,23 +57,26 @@ pub fn init(
 
         let instrument = &data.lock().expect("failed to acquire lock!").instrument;
 
-        audio_slice.par_iter_mut().enumerate().for_each(|(iv, v)| {
-            *v = 0.;
-            for (i, pressed) in keys.iter().enumerate() {
-                if !pressed {
-                    continue;
-                }
-                let frequency = (a4_freq * step_base.powi(i as i32 - 57)).hz();
+        keys.iter_mut()
+            .filter(|key| {
+                key.active
+                    && if let KeyState::Pressed { .. } = key.state {
+                        false
+                    } else {
+                        instrument.envelope.amplitude(key, time).abs() < f64::EPSILON
+                    }
+            })
+            .for_each(|key| key.active = false);
 
-                *v += instrument.value(frequency, time + iv as f64 * frame_t);
-            }
+        audio_slice.par_iter_mut().enumerate().for_each(|(iv, v)| {
+            *v = instrument.value(&keys, time + iv as f64 * frame_t);
         });
 
         time += frame_t * audio_slice.len() as f64;
 
         if time >= f64::MAX {
             time = 0.;
-            keys.iter_mut().for_each(|x| *x = false);
+            keys.iter_mut().for_each(|x| x.active = false);
         }
 
         Control::Continue
