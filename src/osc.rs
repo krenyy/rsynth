@@ -1,9 +1,9 @@
 use crate::hz::Hertz;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::fmt::Debug;
 
 #[typetag::serde(tag = "type")]
-pub trait Oscillator: fmt::Debug + Send + Sync {
+pub trait Oscillator: Debug + Send + Sync {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 }
 
