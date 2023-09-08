@@ -1,8 +1,6 @@
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
-
 use crate::hz::Hertz;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[typetag::serde(tag = "type")]
 pub trait Oscillator: fmt::Debug + Send + Sync {
