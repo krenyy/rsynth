@@ -80,13 +80,3 @@ impl Oscillator for Amplitude {
         self.amplitude * self.oscillator.value(frequency, time)
     }
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Zero;
-
-#[typetag::serde]
-impl Oscillator for Zero {
-    fn value(&self, _frequency: Hertz<f64>, _time: f64) -> f32 {
-        0.
-    }
-}

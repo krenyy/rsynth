@@ -23,7 +23,7 @@ pub fn init(data: Arc<Mutex<Data>>, instrument_path: String) -> RecommendedWatch
                                 sustain_amplitude: 0.,
                                 release_time: 0.,
                             },
-                            oscillator: Box::new(osc::Zero),
+                            oscillator: Box::new(osc::Sawtooth { num_sinewaves: 0 }),
                         }),
                     );
                     data.lock().expect("failed to acquire lock!").should_redraw = true;
