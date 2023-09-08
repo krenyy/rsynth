@@ -2,8 +2,11 @@ use crate::hz::Hertz;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+/// Oscillator trait.
+/// Is implemented on each oscillator and also on `Vec<Box<dyn Oscillator>>`.
 #[typetag::serde(tag = "type")]
 pub trait Oscillator: Debug + Send + Sync {
+    /// Returns a value of an oscillator with a specific frequency at a specific time.
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32;
 }
 
@@ -14,19 +17,34 @@ impl Oscillator for Vec<Box<dyn Oscillator>> {
     }
 }
 
+/// Sine wave oscillator.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Sine;
+
+/// Square wave oscillator.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Square;
+
+/// Triangle wave oscillator.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Triangle;
+
+/// Sawtooth wave oscillator.
+/// Takes a number of sinewaves to compose the sawtooth wave from.
+/// Slower, but more detailed than `SawtoothFast`.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Sawtooth {
     pub num_sinewaves: usize,
 }
+
+/// Fast sawtooth wave oscillator.
+/// Computes a sawtooth wave directly.
+/// Faster, but less detailed than `Sawtooth`.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SawtoothFast;
 
+/// Amplitude oscillator.
+/// Adjust the amplitude of an existing oscillator.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Amplitude {
     pub amplitude: f32,
