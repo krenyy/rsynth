@@ -27,6 +27,12 @@ pub struct Sawtooth {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SawtoothFast;
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Amplitude {
+    pub amplitude: f32,
+    pub oscillator: Box<dyn Oscillator>,
+}
+
 #[typetag::serde]
 impl Oscillator for Sine {
     fn value(&self, frequency: Hertz<f64>, time: f64) -> f32 {
@@ -66,12 +72,6 @@ impl Oscillator for SawtoothFast {
             * (*frequency * ::std::f64::consts::PI * (time % (1. / *frequency))
                 - (::std::f64::consts::PI / 2.))) as f32
     }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Amplitude {
-    pub amplitude: f32,
-    pub oscillator: Box<dyn Oscillator>,
 }
 
 #[typetag::serde]
