@@ -2,6 +2,7 @@ mod envelope;
 mod hz;
 mod instrument;
 mod jack;
+mod key;
 mod midi;
 mod osc;
 mod ui;

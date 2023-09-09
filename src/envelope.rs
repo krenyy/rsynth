@@ -1,4 +1,4 @@
-use crate::instrument::{Key, KeyState};
+use crate::key::Key;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -23,9 +23,14 @@ impl Envelope {
                 decay_time,
                 sustain_amplitude,
                 release_time,
-            } => match key.state {
-                KeyState::Pressed { time_pressed } => {
-                    let pressed_for_time = time - time_pressed;
+            } => {
+                let key_released_before_attack_decay_finished =
+                    (key.time_released - key.time_pressed) < (attack_time + decay_time);
+                let during_attack_decay = (time - key.time_pressed) <= (attack_time + decay_time);
+                if key.is_pressed()
+                    || (key_released_before_attack_decay_finished && during_attack_decay)
+                {
+                    let pressed_for_time = time - key.time_pressed;
                     if pressed_for_time < attack_time {
                         return pressed_for_time / attack_time;
                     }
@@ -35,16 +40,20 @@ impl Envelope {
                                 * ((pressed_for_time - attack_time) / decay_time);
                     }
                     return sustain_amplitude;
-                }
-                KeyState::Released { time_released } => {
-                    let released_for_time = time - time_released;
+                } else {
+                    // let released_for_time = time - key.time_released;
+                    let released_for_time = if key_released_before_attack_decay_finished {
+                        time - (key.time_pressed + attack_time + decay_time)
+                    } else {
+                        time - key.time_released
+                    };
                     if released_for_time < release_time {
                         return sustain_amplitude
                             - sustain_amplitude * (released_for_time / release_time);
                     }
                     return 0.;
                 }
-            },
+            }
             Envelope::AD {
                 attack_time,
                 decay_time,

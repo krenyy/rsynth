@@ -1,5 +1,5 @@
 use crate::{
-    instrument::{Key, KeyState},
+    key::Key,
     midi::{ChannelMessageKind, Message, Midi, SystemMessageKind},
     Data,
 };
@@ -26,7 +26,8 @@ pub fn init(
 
     let mut keys = [Key {
         active: false,
-        state: KeyState::Released { time_released: 0. },
+        time_pressed: 0.,
+        time_released: 0.,
     }; 256];
 
     let handler = ClosureProcessHandler::new(move |_: &Client, ps: &ProcessScope| -> Control {
@@ -37,13 +38,13 @@ pub fn init(
             match midi.message {
                 Message::ChannelMessage { kind, .. } => match kind {
                     ChannelMessageKind::NoteOff { key_number, .. } => {
-                        keys[key_number as usize].state = KeyState::Released {
-                            time_released: time,
-                        }
+                        let key = &mut keys[key_number as usize];
+                        key.time_released = time;
                     }
                     ChannelMessageKind::NoteOn { key_number, .. } => {
-                        keys[key_number as usize].state = KeyState::Pressed { time_pressed: time };
-                        keys[key_number as usize].active = true;
+                        let key = &mut keys[key_number as usize];
+                        key.active = true;
+                        key.time_pressed = time;
                     }
                     kind => tracing::warn!("unimplemented ChannelMessageKind: {kind:?}"),
                 },
@@ -54,17 +55,13 @@ pub fn init(
         }
 
         let audio_slice = audio_out.as_mut_slice(ps);
-
         let instrument = &data.lock().expect("failed to acquire lock!").instrument;
 
         keys.iter_mut()
             .filter(|key| {
                 key.active
-                    && if let KeyState::Pressed { .. } = key.state {
-                        false
-                    } else {
-                        instrument.envelope.amplitude(key, time).abs() < f64::EPSILON
-                    }
+                    && !key.is_pressed()
+                    && instrument.envelope.amplitude(key, time).abs() < f64::EPSILON
             })
             .for_each(|key| key.active = false);
 

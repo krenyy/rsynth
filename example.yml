@@ -1,9 +1,9 @@
-volume: 0.05
+volume: 0.1
 envelope: !ADSR
-  attack_time: 1.0
-  decay_time: 0.5
-  sustain_amplitude: 0.5
-  release_time: 0.4
+  attack_time: 0.05
+  decay_time: 0.15
+  sustain_amplitude: 0.8
+  release_time: 0.3
 oscillator:
   type: Vec
   value:

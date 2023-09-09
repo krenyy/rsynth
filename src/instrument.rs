@@ -1,4 +1,4 @@
-use crate::{envelope::Envelope, hz::Hz, osc::Oscillator};
+use crate::{envelope::Envelope, hz::Hz, key::Key, osc::Oscillator};
 use serde::{Deserialize, Serialize};
 use std::{fs, io, path::Path};
 
@@ -6,18 +6,6 @@ use std::{fs, io, path::Path};
 // const STEP_BASE: f64 = 2f64.powf(1. / 12.);
 const STEP_BASE: f64 = 1.0594630944;
 const A4_FREQUENCY: f64 = 440.;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Key {
-    pub active: bool,
-    pub state: KeyState,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum KeyState {
-    Pressed { time_pressed: f64 },
-    Released { time_released: f64 },
-}
 
 #[derive(Deserialize, Serialize)]
 pub struct Instrument {
