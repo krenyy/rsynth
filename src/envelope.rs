@@ -26,10 +26,10 @@ impl Envelope {
             } => match key.state {
                 KeyState::Pressed { time_pressed } => {
                     let pressed_for_time = time - time_pressed;
-                    if pressed_for_time <= attack_time {
+                    if pressed_for_time < attack_time {
                         return pressed_for_time / attack_time;
                     }
-                    if pressed_for_time <= attack_time + decay_time {
+                    if pressed_for_time < attack_time + decay_time {
                         return 1.
                             - (1. - sustain_amplitude)
                                 * ((pressed_for_time - attack_time) / decay_time);
@@ -38,7 +38,7 @@ impl Envelope {
                 }
                 KeyState::Released { time_released } => {
                     let released_for_time = time - time_released;
-                    if released_for_time <= release_time {
+                    if released_for_time < release_time {
                         return sustain_amplitude
                             - sustain_amplitude * (released_for_time / release_time);
                     }
