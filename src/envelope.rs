@@ -57,7 +57,16 @@ impl Envelope {
             Envelope::AD {
                 attack_time,
                 decay_time,
-            } => todo!(),
+            } => {
+                let pressed_for_time = time - key.time_pressed;
+                if pressed_for_time < attack_time {
+                    return pressed_for_time / attack_time;
+                }
+                if pressed_for_time < attack_time + decay_time {
+                    return 1. - ((pressed_for_time - attack_time) / decay_time);
+                }
+                return 0.;
+            }
         }
     }
 }
