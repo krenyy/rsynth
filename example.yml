@@ -11,8 +11,8 @@ oscillator:
       amplitude: 0.8
       oscillator:
         type: Sawtooth
-        num_sinewaves: 16
+        num_sinewaves: 128
     - type: Amplitude
       amplitude: 0.3
       oscillator:
-        type: Sine
+        type: Triangle
