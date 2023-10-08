@@ -16,5 +16,3 @@ oscillator:
       amplitude: 0.3
       oscillator:
         type: Sine
-    - type: Vec
-      value: []
