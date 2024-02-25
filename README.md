@@ -4,7 +4,7 @@
 
 > A simple wave synthesizer that works with JACK and MIDI.
 
-![](./static/demonstration.mp4)
+![demonstration](./static/demonstration.mp4)
 
 ## Usage
 
