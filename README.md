@@ -1,4 +1,4 @@
-### If you're not on <https://gitlab.com/krenyy/rsynth>, then you're on a mirror.
+### If you're not on <https://git.kroner.dev/kreny/rsynth>, then you're on a mirror.
 
 # rsynth
 
@@ -18,7 +18,8 @@ For example:
 
 - [x] Synthesize simple waves
 - [x] Implement generic oscillator API
-- [x] Implement adding multiple simple waves together to make more complex sounds
+- [x] Implement adding multiple simple waves together to make more complex
+      sounds
 - [x] Implement envelope
 - [x] Create a suitable instrument format
 - [ ] Implement single-key polyphony
